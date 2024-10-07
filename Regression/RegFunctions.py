@@ -78,38 +78,81 @@ def colorScatterPlot(var_name1, var_name2, target_var, df):
 #               CROSS VALIDATION
 #
 # **********************************************
+class GridSearchAnalysis():
 
-def GridSearchResults(model, Xtrain, Ytrain, scoring, select_vars=None, n_folds=5, param_grid={}, plot=False, refit=None):
-    
-    # metrique de réévaluation du meilleur modèle
-    if refit == None : refit = list(scoring.keys())[0]
-    
-    # figure de visualisation des résultats
-    if plot : fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+    def __init__(self, model, Xtrain, Ytrain, scoring, n_folds=5, param_grid={}, refit=None):
 
-    # select vars and grid search
-    if select_vars != None : grid_search = GridSearchCV(model, param_grid=param_grid, scoring=scoring, refit='r2', cv=5).fit(Xtrain[select_vars], Ytrain)
-    else : grid_search = GridSearchCV(model, param_grid=param_grid, scoring=scoring, refit='r2', cv=5).fit(Xtrain, Ytrain)
-    
-    # resultats détaillés
-    results = grid_search.cv_results_
-    
-    # affichage dans un dataframe
-    data_res = pd.DataFrame({})
-    data_res.index = results['params']
-    data_res['fit time'] = [f'{results['mean_fit_time'][i]:.3f} ± {results['std_fit_time'][i]:.3f}' for i in range(len(results['mean_fit_time']))]
-    for metric in scoring.keys():
-        data_res[metric] = [f'{abs(results['mean_test_' + metric][i]):.3f} ± {results['std_test_' + metric][i]:.3f}' for i in range(len(results['mean_test_' + metric]))]
-        if plot and metric == refit : ax.plot(range(0, len(data_res.index)), np.round(np.abs(results['mean_test_' + metric]), 3), marker='o', label=metric + '_cv_test')
+        # metrique de réévaluation du meilleur modèle
+        if refit == None : refit = list(scoring.keys())[0]
 
-    if plot : 
-        ax.grid()
-        ax.legend()
-        ax.set_xlabel("params_index")
-        ax.set_ylabel(refit)
+        # grid search
+        grid_search = GridSearchCV(model, param_grid=param_grid, scoring=scoring, refit=refit, cv=n_folds).fit(Xtrain, Ytrain)
+    
+        self.__params = list(param_grid.keys())
+        self.__metrics = list(scoring.keys())
+        self.__n_folds = n_folds
+
+        # resultats détaillés
+        results = grid_search.cv_results_
+    
+        # affichage dans un dataframe
+        self.__results = pd.DataFrame({})
+        self.__results['mean_fit_time'] = results['mean_fit_time']
+        self.__results['std_fit_time'] = results['std_fit_time']
+
+        for key_param in self.__params :
+            self.__results[key_param] = [results['params'][i][key_param] for i in range(len(results['params']))]
+        
+        for metric in self.__metrics:
+            self.__results['mean_' + metric] = np.abs(results['mean_test_' + metric])
+            self.__results['std_' + metric] = np.abs(results['std_test_' + metric])
+
+        self.__results
         
     # retour des résultats
-    return data_res
+    def score_table(self, groupBy=None, synthetic=True):
+        res = self.__results.copy()
+        if groupBy in self.__params : 
+            res = res.groupby(groupBy).mean() 
+        if synthetic : 
+            res['fit_time'] = [f'{res['mean_fit_time'].iloc[i]:.3f} ± {res['std_fit_time'].iloc[i]:.3f}' for i in range(len(res['mean_fit_time']))]
+            res = res.drop('mean_fit_time', axis=1)
+            res = res.drop('std_fit_time', axis=1)
+            for metric in self.__metrics :
+                res[metric] = [f'{abs(res['mean_' + metric].iloc[i]):.3f} ± {res['std_' + metric].iloc[i]:.3f}' for i in range(len(res['mean_' + metric]))]
+                res = res.drop('mean_' + metric, axis=1)
+                res = res.drop('std_'  + metric, axis=1)
+        return res
+    
+    def plot_score(self, metric=None, groupBy=None):
+
+        if metric == None : metric = self.__metrics[0]
+
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+        ax.grid()
+        res = self.score_table(groupBy=groupBy, synthetic=False)
+
+        if groupBy == None :  
+            ax.plot(res['mean_' + metric], color='red', marker='o', label='mean')
+            ax.plot(res['mean_' + metric] + res['std_' + metric], linestyle='--', color='black', label='std')
+            ax.plot(res['mean_' + metric] - res['std_' + metric], linestyle='--', color='black')
+            ax.set_xlabel('param config id')
+            ax.set_ylabel(metric)
+            ax.set_title(f'{metric} depending on complexity, CV={self.__n_folds}')
+
+        else :
+            ax.plot(res.index, res['mean_' + metric], color='red', marker='o', label=f'mean-{metric}, groupByMean={groupBy}')
+            ax.plot(res.index, res['mean_' + metric] + res['std_' + metric], linestyle='--', color='black', label=f'std-{metric}, groupByMean={groupBy}')
+            ax.plot(res.index, res['mean_' + metric] - res['std_' + metric], linestyle='--', color='black')
+            ax.set_xlabel(groupBy)
+            ax.set_ylabel(metric)
+            ax.set_title(f'{metric} depending on {groupBy} (mean groupBy), CV={self.__n_folds}')
+
+        ax.legend()
+
+    def save_score(self, filename):
+        self.score_table().to_csv('GSResults/' + filename + '.csv', index=False)
 
 # **********************************************
 #
@@ -117,15 +160,10 @@ def GridSearchResults(model, Xtrain, Ytrain, scoring, select_vars=None, n_folds=
 #
 # **********************************************
 
-def submit_model(filename, Ypred):
+def submit_model(filename, Ypred, test):
+    
     pd.DataFrame({
-
-        'row_ID':range(0, len(Ypred)),
+        'row_ID':test.index,
         'tip_amount':Ypred
-
     }).to_parquet('predictions/' + filename + '.parquet', index=False)
-
-
-
-
 
