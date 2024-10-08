@@ -10,7 +10,7 @@ import seaborn as sns
 #
 # **********************************************
 
-def corrplot(df, target_var):
+def corrplot(df, target_var, num_cols=7,mt_width = 2):
     """
     > Plot correlation matrix on dataframe df with target_var
     """
@@ -18,10 +18,9 @@ def corrplot(df, target_var):
     y = df[target_var]
     size = len(X.columns)
 
-    num_cols, mt_width = 7, 2
-    mt_heigh = 1 + size//(mt_width * num_cols)
+    mt_heigh = size//(mt_width * num_cols) # + 1
     
-    fig, ax = plt.subplots(mt_heigh, mt_width, figsize=(8, 4*mt_heigh))
+    fig, ax = plt.subplots(mt_heigh, mt_width, figsize=(8, 4*mt_heigh),squeeze=False)
     plt.subplots_adjust(wspace=1, hspace=1)
     fig.suptitle("Correlation matrix", size=15)
 
@@ -40,7 +39,25 @@ def corrplot(df, target_var):
                 vmax=1, 
                 ax=ax[i, j]
             )
-    
+
+# def corrplot_complete(df, target_var):
+#     X = df.drop(target_var, axis=1)
+#     y = df[target_var]
+#
+#     sns.heatmap(pd.concat((X,y),axis=1).corr(),
+#                 annot=False,
+#                 cmap='coolwarm',
+#                 linewidths=0.25,
+#                 vmin=-1,
+#                 vmax=1,
+#                 )
+#
+#     t = X.shape[1]
+#     plt.plot([t, t], [0, t], color='black')
+#     plt.plot([t, 0], [t, t], color='black')
+#     print(t)
+#     plt.title('Correlation Matrix')
+
 def biScatterPlot(var_name, target_var, df):
     """
     > BiScatter plot for target_var depending on var_name
@@ -72,6 +89,31 @@ def colorScatterPlot(var_name1, var_name2, target_var, df):
     ax.set_xlabel(var_name1)
     ax.set_ylabel(var_name2)
     ax.legend()
+
+
+def crosstab(var1, var2, prefix=None):
+    """
+    Heatmap for crosstab of var1 and var2
+    """
+    if prefix is None:
+        var1 = pd.get_dummies(var1)
+        var2 = pd.get_dummies(var2)
+    else:
+        var1 = pd.get_dummies(var1, prefix=prefix[0], prefix_sep='')
+        var2 = pd.get_dummies(var2, prefix=prefix[1], prefix_sep='')
+
+    res = np.zeros((var1.shape[1], var2.shape[1]))
+    for i in range(var1.shape[1]):
+        for j in range(var2.shape[1]):
+            res[i, j] += np.sum(var1.iloc[:, i] == var2.iloc[:, j])
+
+    res = pd.DataFrame(res, index=var1.columns, columns=var2.columns).astype(int)
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    plt.subplots_adjust(wspace=1, hspace=1)
+    fig.suptitle("Crosstab", size=15)
+
+    sns.heatmap(res, annot=True, cmap="Blues", fmt='g')
 
 # **********************************************
 #
@@ -115,11 +157,11 @@ class GridSearchAnalysis():
         if groupBy in self.__params : 
             res = res.groupby(groupBy).mean() 
         if synthetic : 
-            res['fit_time'] = [f'{res['mean_fit_time'].iloc[i]:.3f} ± {res['std_fit_time'].iloc[i]:.3f}' for i in range(len(res['mean_fit_time']))]
+            res['fit_time'] = [f"{res['mean_fit_time'].iloc[i]:.3f} ± {res['std_fit_time'].iloc[i]:.3f}" for i in range(len(res['mean_fit_time']))]
             res = res.drop('mean_fit_time', axis=1)
             res = res.drop('std_fit_time', axis=1)
             for metric in self.__metrics :
-                res[metric] = [f'{abs(res['mean_' + metric].iloc[i]):.3f} ± {res['std_' + metric].iloc[i]:.3f}' for i in range(len(res['mean_' + metric]))]
+                res[metric] = [f"{abs(res['mean_' + metric].iloc[i]):.3f} ± {res['std_' + metric].iloc[i]:.3f}" for i in range(len(res['mean_' + metric]))]
                 res = res.drop('mean_' + metric, axis=1)
                 res = res.drop('std_'  + metric, axis=1)
         return res
@@ -165,5 +207,5 @@ def submit_model(filename, Ypred, test):
     pd.DataFrame({
         'row_ID':test.index,
         'Cover_Type':Ypred
-    }).set_index('row_ID').to_csv('predictions/' + filename + '.parquet', index=False)
+    }).to_csv('predictions/' + filename + '.csv', index=False)
 

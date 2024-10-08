@@ -115,11 +115,11 @@ class GridSearchAnalysis():
         if groupBy in self.__params : 
             res = res.groupby(groupBy).mean() 
         if synthetic : 
-            res['fit_time'] = [f'{res['mean_fit_time'].iloc[i]:.3f} ± {res['std_fit_time'].iloc[i]:.3f}' for i in range(len(res['mean_fit_time']))]
+            res['fit_time'] = [f"{res['mean_fit_time'].iloc[i]:.3f} ± {res['std_fit_time'].iloc[i]:.3f}" for i in range(len(res['mean_fit_time']))]
             res = res.drop('mean_fit_time', axis=1)
             res = res.drop('std_fit_time', axis=1)
             for metric in self.__metrics :
-                res[metric] = [f'{abs(res['mean_' + metric].iloc[i]):.3f} ± {res['std_' + metric].iloc[i]:.3f}' for i in range(len(res['mean_' + metric]))]
+                res[metric] = [f"{abs(res['mean_' + metric].iloc[i]):.3f} ± {res['std_' + metric].iloc[i]:.3f}" for i in range(len(res['mean_' + metric]))]
                 res = res.drop('mean_' + metric, axis=1)
                 res = res.drop('std_'  + metric, axis=1)
         return res
