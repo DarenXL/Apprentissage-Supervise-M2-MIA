@@ -105,7 +105,7 @@ def crosstab(var1, var2, prefix=None):
     res = np.zeros((var1.shape[1], var2.shape[1]))
     for i in range(var1.shape[1]):
         for j in range(var2.shape[1]):
-            res[i, j] += np.sum(var1.iloc[:, i] == var2.iloc[:, j])
+            res[i, j] += np.sum(var1.iloc[:, i] * var2.iloc[:, j])
 
     res = pd.DataFrame(res, index=var1.columns, columns=var2.columns).astype(int)
 
