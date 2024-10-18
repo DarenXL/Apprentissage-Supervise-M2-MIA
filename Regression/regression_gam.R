@@ -57,8 +57,10 @@ CV <- function(data, equation, equation_rf, iter=5){
 
     pred <- RFGAM(train0, test1, equation, equation_rf)
 
-    # gam.res <- gam(equation, data = train0)                     # GAM sur train
+    # gam.res <- gam(equation, data = train0)
     # pred <- predict(gam.res, newdata=test1)
+
+    # print(summary(gam.res))
 
     cv_R2 <- cv_R2 + R2(test1$tip_amount, pred)
   }
@@ -68,7 +70,19 @@ CV <- function(data, equation, equation_rf, iter=5){
 equation <- tip_amount ~ passenger_count + trip_distance + fare_amount + extra + mta_tax + tolls_amount + improvement_surcharge +
   congestion_surcharge + Airport_fee + PU_location_lat + PU_location_lon + DO_location_lat + DO_location_lon + VendorID_2 +
   RatecodeID_2.0 + RatecodeID_3.0 + RatecodeID_4.0 + RatecodeID_5.0 + RatecodeID_6.0
+
+equation <- tip_amount ~ passenger_count + s(trip_distance) + fare_amount + extra + tolls_amount +
+  congestion_surcharge + Airport_fee + te(PU_location_lat + PU_location_lon) + te(DO_location_lat + DO_location_lon) + VendorID_2 +
+  RatecodeID_2.0 + RatecodeID_3.0 + RatecodeID_4.0 + RatecodeID_5.0 + RatecodeID_6.0
+
 cov <- c("trip_distance","extra")
 
-CV(train, equation, cov, iter=5)
+CV(train, equation, cov, iter=3)
 
+###########################################################
+#### Submit
+
+res <- RFGAM(train, test, equation, cov)
+
+data.res <- data.frame(row_ID = 1:length(res), tip_amount = res)
+write_parquet(data.res,"predictions/GAMRF.parquet")
