@@ -6,14 +6,11 @@ Regression :      https://www.kaggle.com/competitions/nyc-taxis-tips
 Classification :  https://www.kaggle.com/competitions/forest-cover-type-orsay
 
 
-## Historique 
+Rapport : https://fr.overleaf.com/7979545154mfdcwhffmxhy#a02488
 
-#### Semaine 1 :
-* Création GIT / Notebooks 
-* Régression linéaire pour problème des taxis
+## Historique 
 
 ## A faire
 * Faire une solution par problème par semaine
 * Faire un README plus propre
-* Retirer les données du git à la fin du projet
 * Faire un rapport
