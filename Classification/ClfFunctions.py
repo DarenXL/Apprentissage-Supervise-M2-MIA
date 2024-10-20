@@ -115,6 +115,42 @@ def crosstab(var1, var2, prefix=None):
 
     sns.heatmap(res, annot=True, cmap="Blues", fmt='g')
 
+
+def mapNYC():
+    img = plt.imread("data/map.jpg")
+
+    fig, ax = plt.subplots(2, 2, figsize=(15, 15))
+
+    origin = (31, 71)  # (33,75)
+    size = 245  # 240
+    extent = (min(train['PU_location_lon']),
+              max(train['PU_location_lon']),
+              min(train['PU_location_lat']),
+              max(train['PU_location_lat']))
+
+    origin = (20, 32)  # (10,25)
+    size = 300  # 320
+    extent = (min(test['DO_location_lon']),
+              max(test['DO_location_lon']),
+              min(test['DO_location_lat']),
+              max(test['DO_location_lat']))
+
+    ax[0, 0].imshow(img[origin[0]:origin[0] + size, origin[1]:origin[1] + size], extent=extent, aspect='equal')
+    ax[0, 0].scatter(train['PU_location_lon'], train['PU_location_lat'], color='black', marker='.')
+    ax[0, 0].title.set_text("Train : Points de départ")
+
+    ax[0, 1].imshow(img[origin[0]:origin[0] + size, origin[1]:origin[1] + size], extent=extent, aspect='equal')
+    ax[0, 1].scatter(train['DO_location_lon'], train['DO_location_lat'], color='black', marker='.')
+    ax[0, 1].title.set_text("Train : Points d'arrivée")
+
+    ax[1, 0].imshow(img[origin[0]:origin[0] + size, origin[1]:origin[1] + size], extent=extent, aspect='equal')
+    ax[1, 0].scatter(test['PU_location_lon'], test['PU_location_lat'], color='black', marker='.')
+    ax[1, 0].title.set_text("Test : Points de départ")
+
+    ax[1, 1].imshow(img[origin[0]:origin[0] + size, origin[1]:origin[1] + size], extent=extent, aspect='equal')
+    ax[1, 1].scatter(test['DO_location_lon'], test['DO_location_lat'], color='black', marker='.')
+    ax[1, 1].title.set_text("Test : Points d'arrivée")
+
 # **********************************************
 #
 #               CROSS VALIDATION

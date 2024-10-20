@@ -55,10 +55,10 @@ CV <- function(data, equation, equation_rf, iter=5){
     train0  <- data[sample, ]
     test1   <- data[!sample, ]
 
-    pred <- RFGAM(train0, test1, equation, equation_rf)
+    # pred <- RFGAM(train0, test1, equation, equation_rf)
 
-    # gam.res <- gam(equation, data = train0)
-    # pred <- predict(gam.res, newdata=test1)
+    gam.res <- gam(equation, data = train0)
+    pred <- pmax(predict(gam.res, newdata=test1),0)
 
     # print(summary(gam.res))
 
