@@ -77,15 +77,8 @@ def mapNYC(train, test, img):
 
     fig, ax = plt.subplots(2, 2, figsize=(15, 15))
 
-    origin = (31, 71)  # (33,75)
-    size = 245  # 240
-    extent = (min(train['PU_location_lon']),
-              max(train['PU_location_lon']),
-              min(train['PU_location_lat']),
-              max(train['PU_location_lat']))
-
-    origin = (20, 32)  # (10,25)
-    size = 300  # 320
+    origin = (20, 32)
+    size = 300
     extent = (min(test['DO_location_lon']),
               max(test['DO_location_lon']),
               min(test['DO_location_lat']),
