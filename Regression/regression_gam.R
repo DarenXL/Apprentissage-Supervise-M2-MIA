@@ -4,9 +4,43 @@ library(arrow)
 library(qgam)
 library(dplyr)
 library(ranger)
+library(tidytable)
+library(lubridate)
 
-train <- read_parquet('data/modified/train_modified.parquet')[c(-1,-2)]
-test <- read_parquet('data/modified/test_modified.parquet')[c(-1,-2)]
+# train <- read_parquet('data/modified/train_modified.parquet')[c(-1,-2)]
+# test <- read_parquet('data/modified/test_modified.parquet')[c(-1,-2)]
+
+train <- read_parquet('data/train.parquet')
+test <- read_parquet('data/test.parquet')
+
+train[train$RatecodeID >= 6, 'RatecodeID'] <- 6.0
+test[test$RatecodeID >= 6, 'RatecodeID'] <- 6.0
+
+train <- get_dummies(train, cols=c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type'),drop_first = TRUE)
+train <- train[,-c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type')]
+test <- get_dummies(test, cols=c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type'),drop_first = TRUE)
+test <- test[,-c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type')]
+
+# train$tpep_pickup_datetime <- as.POSIXct(train$tpep_pickup_datetime,tz=Sys.timezone())
+# test$tpep_pickup_datetime <- as.POSIXct(test$tpep_pickup_datetime,tz=Sys.timezone())
+
+train$duration <- as.numeric(train$tpep_dropoff_datetime) - as.numeric(train$tpep_pickup_datetime)
+test$duration <- as.numeric(test$tpep_dropoff_datetime) - as.numeric(test$tpep_pickup_datetime)
+
+train$log_duration <- log(train$duration + 1)
+train$log_duration <- log(train$duration + 1)
+
+train$hour <- hour(train$tpep_dropoff_datetime) + minute(train$tpep_dropoff_datetime) / 60
+test$hour <- hour(test$tpep_dropoff_datetime) + minute(test$tpep_dropoff_datetime) / 60
+
+train$week_end <- (wday(train$tpep_dropoff_datetime) >= 6)
+test$week_end <- (wday(test$tpep_dropoff_datetime) >= 6)
+
+train$day <- mday(train$tpep_dropoff_datetime)
+test$day <- mday(test$tpep_dropoff_datetime)
+
+train <- train[,-c("tpep_pickup_datetime", "tpep_dropoff_datetime")]
+test <- test[,-c("tpep_pickup_datetime", "tpep_dropoff_datetime")]
 
 ###################################################################
 #### GAM + RF
@@ -85,7 +119,7 @@ equation <- tip_amount ~ passenger_count + s(trip_distance, bs='cr') + s(fare_am
 # best : seulement les variables les plus significatives pour le GAM
 equation <- tip_amount ~ s(trip_distance, bs='cr') + s(fare_amount, bs='cr') + s(extra) + s(tolls_amount, bs='cr') +
   congestion_surcharge + Airport_fee + te(PU_location_lat + PU_location_lon) + te(DO_location_lat + DO_location_lon) + VendorID_2 +
-  RatecodeID_2.0 + RatecodeID_3.0 + RatecodeID_4.0 + RatecodeID_5.0 + RatecodeID_6.0 + payment_type_2 +
+  RatecodeID_2 + RatecodeID_3 + RatecodeID_4 + RatecodeID_5 + RatecodeID_6 + payment_type_2 +
   payment_type_3 + payment_type_4 + s(duration, bs='cr') + s(log_duration, bs='cr') + s(hour, bs='tp')
 
 # best : la majorité des variables sont utilisées pour prédire les résidus
