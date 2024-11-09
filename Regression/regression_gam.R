@@ -18,7 +18,8 @@ test[test$RatecodeID >= 6, 'RatecodeID'] <- 6.0
 
 train <- get_dummies(train, cols=c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type'),drop_first = TRUE)
 train <- train[,-c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type')]
-test <- get_dummies(test, cols=c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type'),drop_first = TRUE)
+
+test <- get_dummies(test, cols=c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type'))
 test <- test[,-c('VendorID', 'RatecodeID', 'store_and_fwd_flag', 'payment_type')]
 
 # train$tpep_pickup_datetime <- as.POSIXct(train$tpep_pickup_datetime,tz=Sys.timezone())
@@ -28,7 +29,7 @@ train$duration <- as.numeric(train$tpep_dropoff_datetime) - as.numeric(train$tpe
 test$duration <- as.numeric(test$tpep_dropoff_datetime) - as.numeric(test$tpep_pickup_datetime)
 
 train$log_duration <- log(train$duration + 1)
-train$log_duration <- log(train$duration + 1)
+test$log_duration <- log(abs(test$duration) + 1)
 
 train$hour <- hour(train$tpep_dropoff_datetime) + minute(train$tpep_dropoff_datetime) / 60
 test$hour <- hour(test$tpep_dropoff_datetime) + minute(test$tpep_dropoff_datetime) / 60
@@ -103,18 +104,13 @@ CV <- function(data, equation, equation_rf, gterm, K=5){
 
     pred <- RFGAM(train0, test1, equation, equation_rf, gterm)
 
-    # gam.res <- gam(equation, data = train0)
-    # pred <- pmax(predict(gam.res, newdata=test1),0)
+    #gam.res <- gam(equation, data = train0)
+    #pred <- pmax(predict(gam.res, newdata=test1),0)
 
     cv_R2 <- cv_R2 + R2(test1$tip_amount, pred)
   }
   return(cv_R2/K)
 }
-
-equation <- tip_amount ~ passenger_count + s(trip_distance, bs='cr') + s(fare_amount, bs='cr') + s(extra) + s(tolls_amount, bs='cr') +
-  congestion_surcharge + Airport_fee + te(PU_location_lat + PU_location_lon) + te(DO_location_lat + DO_location_lon) + VendorID_2 +
-  RatecodeID_2.0 + RatecodeID_3.0 + RatecodeID_4.0 + RatecodeID_5.0 + RatecodeID_6.0 + store_and_fwd_flag_Y + payment_type_2 +
-  payment_type_3 + payment_type_4 + s(duration, bs='cr') + s(log_duration, bs='cr') + s(hour, bs='tp') + week_end + day
 
 # best : seulement les variables les plus significatives pour le GAM
 equation <- tip_amount ~ s(trip_distance, bs='cr') + s(fare_amount, bs='cr') + s(extra) + s(tolls_amount, bs='cr') +
@@ -124,12 +120,13 @@ equation <- tip_amount ~ s(trip_distance, bs='cr') + s(fare_amount, bs='cr') + s
 
 # best : la majorité des variables sont utilisées pour prédire les résidus
 custom_gterm <- NULL
-cov <- c("trip_distance","fare_amount","tolls_amount","log_duration","hour","extra", "week_end", "day", "passenger_count","PU_location_lat", "PU_location_lon","DO_location_lat", "DO_location_lon")
+cov <- c("trip_distance","fare_amount","tolls_amount","log_duration","hour","extra", "week_end", "day", "passenger_count","PU_location_lat", "PU_location_lon","DO_location_lat", "DO_location_lon",
+         "RatecodeID_2","RatecodeID_3","RatecodeID_4","RatecodeID_5","RatecodeID_6", "VendorID_2", "payment_type_2", "payment_type_3", "payment_type_4")
+
 
 # Les termes avec le plus d'importance dans la random forest
-# custom_gterm <- c(3,5,11,16,17,22,23)
-custom_gterm <- c(9,12,13,18,19)
-cov <- c("trip_distance","fare_amount","log_duration")
+# custom_gterm <- c(2, 9, 12, 13, 18, 19)
+# cov <- c("trip_distance","fare_amount","log_duration")
 
 CV(train, equation, cov, custom_gterm, K=5)
 
